@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { sendMatchData } from "./api";
+import React, { useState, useEffect } from "react";
 
 const venues = [
   { name: "M Chinnaswamy Stadium, Bengaluru" },
@@ -44,7 +43,6 @@ const teamFullNames = {
   "GT": "Gujarat Titans"
 };
 
-
 const teams = Object.keys(teamStadiums);
 
 const styles = {
@@ -64,9 +62,9 @@ const styles = {
     alignItems: "center",
     position: "relative",
     fontFamily: "'Arial', sans-serif",
-    backgroundrepeat: "no-repeat",
-    backgroundsize: "100% 100%",
-    backgroundattachment: "fixed",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "100% 100%",
+    backgroundAttachment: "fixed",
   },
   background: {
     position: "fixed",
@@ -168,6 +166,50 @@ const styles = {
     backgroundColor: "#007bff",
     transform: "translateY(-2px)",
     boxShadow: "0 6px 20px rgba(0, 0, 0, 0.3)",
+  },
+  progressBarContainer: {
+    width: "100%",
+    height: "40px",
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    borderRadius: "20px",
+    position: "relative",
+    overflow: "hidden",
+    marginTop: "10px",
+  },
+  teamLabel: {
+    position: "absolute",
+    padding: "0 15px",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    fontSize: "16px",
+    fontWeight: "bold",
+    zIndex: 2,
+  },
+  teamLeftLabel: {
+    left: 0,
+    color: "white",
+  },
+  teamRightLabel: {
+    right: 0,
+    color: "white",
+  },
+  percentageLabel: {
+    position: "absolute",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    fontSize: "16px",
+    fontWeight: "bold",
+    zIndex: 2,
+  },
+  leftPercentage: {
+    left: "25%",
+    color: "white",
+  },
+  rightPercentage: {
+    right: "25%",
+    color: "white",
   }
 };
 
@@ -203,14 +245,14 @@ const MatchPreview = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // If teams are the same, adjust team2
-  React.useEffect(() => {
+  useEffect(() => {
     if (team1 === team2) {
       const availableTeams = teams.filter(t => t !== team1);
       setTeam2(availableTeams[0]);
     }
   }, [team1]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (team1 === team2) {
       const availableTeams = teams.filter(t => t !== team2);
       setTeam1(availableTeams[0]);
@@ -244,25 +286,8 @@ const MatchPreview = () => {
       }
 
       const data = await response.json();
-      console.log("Raw prediction response:", data);
-
-      // Process the prediction data
-      const predictionLines = data.prediction.split('\n');
-      const processedPrediction = {};
-
-      predictionLines.forEach(line => {
-        const teamMatch = line.match(/(.*?) Score: ([\d.]+) \(([\d.]+)%\)/);
-        if (teamMatch) {
-          const [_, teamName, score, probability] = teamMatch;
-          processedPrediction[teamName.trim()] = {
-            score: parseFloat(score),
-            probability: parseFloat(probability)
-          };
-        }
-      });
-
-      console.log("Processed prediction:", processedPrediction);
-      setPrediction(processedPrediction);
+      console.log("Prediction response:", data);
+      setPrediction(data);
 
     } catch (error) {
       console.error("Error fetching prediction:", error);
@@ -272,26 +297,134 @@ const MatchPreview = () => {
     }
   };
 
-
-
-return (
-  <div style={styles.body}>
-    {/* Background */}
-    <div
-      style={{
-        ...styles.background,
-        backgroundImage: `url(/IPL/${teamStadiums[team1]})`,
-      }}
-    />
+  // Render the prediction result with a Google-style probability bar
+  const renderPredictionResult = () => {
+    if (!prediction) return null;
+  
+    // Team abbreviations for display (reverse lookup from full names)
+    const getTeamAbbr = (fullName) => {
+      return Object.keys(teamFullNames).find(abbr => teamFullNames[abbr] === fullName) || fullName;
+    };
+  
+    const team1Data = prediction.team1;
+    const team2Data = prediction.team2;
+    const team1Abbr = getTeamAbbr(team1Data.name);
+    const team2Abbr = getTeamAbbr(team2Data.name);
+    const team1Percentage = Math.round(team1Data.probability);
+    const team2Percentage = Math.round(team2Data.probability);
+    const winner = prediction.winner;
+    const winnerAbbr = getTeamAbbr(winner);
     
-    {/* Overlay */}
-    <div style={styles.overlay} />
-    
-    {/* Main Content */}
-    <div style={styles.container}>
-        <TeamSelector team={team1} setTeam={setTeam1} otherTeam={team2} />
+    return (
+      <div style={{
+        marginTop: "20px", // Changed from 30px to 20px
+        width: "80%",
+        maxWidth: "800px",
+        padding: "20px", // Changed from 25px to 20px
+        background: "rgba(30, 144, 255, 0.15)",
+        borderRadius: "15px",
+        backdropFilter: "blur(10px)",
+        border: "2px solid #1e90ff",
+        color: "white",
+        textAlign: "center",
+      }}>
+        <div style={{
+          fontSize: "24px", // Changed from 28px to 24px
+          color: "#FFD700",
+          marginBottom: "10px", // Changed from 15px to 10px
+          textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
+          fontWeight: "bold"
+        }}>
+          Match Prediction
+        </div>
+        
+        <div style={{
+          fontSize: "16px", // Changed from 18px to 16px
+          marginTop: "15px", // Changed from 20px to 15px
+          marginBottom: "8px", // Changed from 10px to 8px
+          fontWeight: "bold"
+        }}>
+          Win Probability
+        </div>
+        
+        {/* Google-style probability bar */}
+        <div style={styles.progressBarContainer}>
+          {/* Team 1 side */}
+          <div style={{
+            position: "absolute",
+            width: `${team1Percentage}%`,
+            height: "100%",
+            background: "linear-gradient(90deg, #1e90ff, #4169E1)",
+            borderRadius: team1Percentage > 90 ? "20px" : "20px 0 0 20px",
+            transition: "width 0.5s ease-in-out"
+          }} />
+          
+          {/* Team 2 side */}
+          <div style={{
+            position: "absolute",
+            width: `${team2Percentage}%`,
+            height: "100%",
+            right: 0,
+            background: "linear-gradient(90deg, #4169E1, #1e90ff)",
+            borderRadius: team2Percentage > 90 ? "20px" : "0 20px 20px 0",
+            transition: "width 0.5s ease-in-out"
+          }} />
+          
+          {/* Team labels */}
+          <div style={{...styles.teamLabel, ...styles.teamLeftLabel}}>
+            {team1Abbr}
+          </div>
+          <div style={{...styles.teamLabel, ...styles.teamRightLabel}}>
+            {team2Abbr}
+          </div>
+          
+          {/* Percentage labels */}
+          {team1Percentage > 20 && (
+            <div style={{...styles.percentageLabel, ...styles.leftPercentage}}>
+              {team1Percentage}%
+            </div>
+          )}
+          {team2Percentage > 20 && (
+            <div style={{...styles.percentageLabel, ...styles.rightPercentage}}>
+              {team2Percentage}%
+            </div>
+          )}
+        </div>
+        
+        {/* Winner declaration */}
+        <div style={{ 
+          marginTop: "25px",
+          fontSize: "24px",
+          fontWeight: "bold",
+          color: "#1e90ff",
+          padding: "15px",
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
+          borderRadius: "10px"
+        }}>
+          Predicted Winner: {winnerAbbr}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={styles.body}>
+      {/* Background */}
+      <div
+        style={{
+          ...styles.background,
+          backgroundImage: `url(/IPL/${teamStadiums[team1]})`,
+        }}
+      />
+      
+      {/* Overlay */}
+      <div style={styles.overlay} />
+      
+      {/* Main Content */}
+      <div style={styles.container}>
+        <TeamSelector team={team1} setTeam={setTeam1} />
         <span style={styles.vsText}>VS</span>
-        <TeamSelector team={team2} setTeam={setTeam2} otherTeam={team1} />
+        <TeamSelector team={team2} setTeam={setTeam2} />
       </div>
 
       <div style={styles.venueSelector}>
@@ -304,7 +437,7 @@ return (
           <option value="">Choose a venue</option>
           {venues.map((venue) => (
             <option key={venue.name} value={venue.name}>
-              {venue.name}, {venue.city}
+              {venue.name}
             </option>
           ))}
         </select>
@@ -332,70 +465,7 @@ return (
         </div>
       )}
 
-      {prediction && (
-        <div style={{
-          marginTop: "30px",
-          width: "80%",
-          maxWidth: "800px",
-          padding: "25px",
-          background: "rgba(30, 144, 255, 0.15)",
-          borderRadius: "15px",
-          backdropFilter: "blur(10px)",
-          border: "2px solid #1e90ff",
-          color: "white",
-          textAlign: "center",
-          animation: "fadeIn 0.5s ease-in-out"
-        }}>
-          <div style={{
-            fontSize: "28px",
-            color: "#FFD700",
-            marginBottom: "15px",
-            textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
-            fontWeight: "bold"
-          }}>
-            Match Prediction
-          </div>
-          <div style={{
-            fontSize: "22px",
-            lineHeight: "1.5",
-            padding: "10px"
-          }}>
-            {Object.entries(prediction).map(([team, data]) => (
-              <div key={team} style={{
-                margin: "15px 0",
-                padding: "15px",
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "10px"
-              }}>
-                <div style={{ color: "#FFD700", fontWeight: "bold", marginBottom: "10px" }}>
-                  {team}
-                </div>
-                <div style={{ fontSize: "20px" }}>
-                  Score: {data.score.toFixed(2)}
-                  <br />
-                  Win Probability: {data.probability.toFixed(2)}%
-                </div>
-              </div>
-            ))}
-            
-            <div style={{ 
-              marginTop: "25px",
-              fontSize: "24px",
-              fontWeight: "bold",
-              color: "#1e90ff",
-              padding: "15px",
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
-              borderRadius: "10px"
-            }}>
-              Predicted Winner: {
-                Object.entries(prediction).reduce((a, b) => 
-                  prediction[a[0]].probability > prediction[b[0]].probability ? a : b
-                )[0]
-              }
-            </div>
-          </div>
-        </div>
-      )}
+      {prediction && renderPredictionResult()}
     </div>
   );
 };
