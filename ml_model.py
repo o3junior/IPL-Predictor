@@ -52,6 +52,7 @@ def get_venue_team_success_rate(df):
 def predict_winner(team1, team2, venue):
     """
     Predict match winner based on historical data and venue statistics.
+    Returns structured data with win probabilities.
     """
     # Statistical calculations on the original data
     # Overall Success Rate
@@ -93,11 +94,18 @@ def predict_winner(team1, team2, venue):
         prob_team1 = team1_score / (team1_score + team2_score) * 100
         prob_team2 = team2_score / (team1_score + team2_score) * 100
     
-    # Prediction Result with Probabilities
-    winner = team1 if team1_score > team2_score else team2
-    
-    # Return result
-    return f"🏆 Predicted Winner: {winner}\n{team1}: {prob_team1:.2f}%\n{team2}: {prob_team2:.2f}%"
+    # Return structured data instead of a string
+    return {
+        "team1": {
+            "name": team1,
+            "probability": prob_team1
+        },
+        "team2": {
+            "name": team2,
+            "probability": prob_team2
+        },
+        "winner": team1 if prob_team1 > prob_team2 else team2
+    }
 
 # Example Test
 if __name__ == "__main__":
